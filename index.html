@@ -205,7 +205,7 @@ select:focus,input:focus,textarea:focus{
       <p class="sub" id="rep-date"></p>
       <button class="link" id="rep-yest"></button>
     </div>
-    <div class="note">Цифра — сколько кандидатов <b style="color:var(--ink)">перешло на этап</b> за этот день. Не сколько на нём стоит сейчас.</div>
+    <div class="note">Цифра — сколько кандидатов <b style="color:var(--ink)">перешло на этап</b> за этот день.</div>
     <div id="rep-list"></div>
     <p class="err" id="rep-err" hidden></p>
     <div id="rep-ok"></div>
@@ -215,7 +215,7 @@ select:focus,input:focus,textarea:focus{
     <div class="hd">
       <span class="wordmark">easy<span class="colon"><i></i><i></i></span>hunt</span>
       <h1>Отпуск, day off, больничный</h1>
-      <p class="sub">Попадёт в табель и в остатки отпуска.</p>
+      <p class="sub">Уйдёт на согласование. В табель попадёт после решения.</p>
     </div>
     <div class="field"><label class="lbl" for="ab-type">Тип</label>
       <select id="ab-type">
@@ -506,7 +506,9 @@ $('ab-go').onclick = function () {
     type: $('ab-type').value, from: $('ab-from').value,
     to: $('ab-to').value || $('ab-from').value, comment: $('ab-note').value.trim()
   }).then(function (j) {
-    $('ab-ok').innerHTML = '<div class="ok">Записано в табель<br>дней отмечено: ' + j.marked + '</div>';
+    $('ab-ok').innerHTML = '<div class="ok">Заявка отправлена<br>' +
+      '<span style="font-weight:400;opacity:.85">ждёт решения ' +
+      (j.approver || 'руководителя') + '</span></div>';
     $('ab-go').hidden = true;
     if (tg) setTimeout(function () { tg.close(); }, 1600);
   }).catch(function (e) {
