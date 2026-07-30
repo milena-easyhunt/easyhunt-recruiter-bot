@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EasyHunt</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400..700&family=JetBrains+Mono:wght@400;700&family=Unbounded:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E7ECEA; --card:#FFF; --ink:#0C1A17; --muted:#5F706C; --line:#CDD8D5;
+  --accent:#0F3D34; --focus:#1E7A65; --done:#DCEBE4; --skip:#EDEEEE; --warn:#9E3B27;
+  --r:12px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg)}
+body{
+  color:var(--ink); font-family:"Golos Text",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:15px; line-height:1.45; -webkit-font-smoothing:antialiased;
+  padding-bottom:calc(92px + env(safe-area-inset-bottom));
+}
+.wrap{max-width:560px;margin:0 auto;padding:0 14px}
+.scr{display:none} .scr.on{display:block}
+
+/* шапка */
+.hd{padding:22px 0 14px}
+.mark{font-family:"JetBrains Mono",monospace;font-size:10.5px;font-weight:700;
+      letter-spacing:.22em;color:var(--accent);text-transform:uppercase}
+h1{font-family:"Unbounded",sans-serif;font-weight:500;font-size:23px;
+   line-height:1.15;letter-spacing:-.02em;margin:7px 0 4px}
+.sub{color:var(--muted);font-size:13px;margin:0}
+
+/* кнопки */
+.big{
+  display:block;width:100%;text-align:left;background:var(--card);
+  border:1px solid var(--line);border-radius:var(--r);padding:18px 16px;
+  margin-bottom:10px;cursor:pointer;font-family:inherit;font-size:17px;color:var(--ink)
+}
+.big small{display:block;font-size:13px;color:var(--muted);margin-top:3px;font-weight:400}
+.big:active{background:var(--bg)}
+.btn{
+  border:0;border-radius:var(--r);background:var(--accent);color:#fff;
+  font-family:inherit;font-size:15px;font-weight:600;padding:13px 20px;cursor:pointer
+}
+.btn:disabled{background:#A6B4B0}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--line)}
+.btn.wide{width:100%;display:block;margin-top:10px}
+.link{background:none;border:0;color:var(--focus);font-family:inherit;
+      font-size:13px;cursor:pointer;padding:4px 0;text-decoration:underline}
+
+/* поля */
+label.lbl{display:block;font-size:12.5px;color:var(--muted);margin:0 0 5px}
+select,input,textarea{
+  width:100%;font-family:inherit;font-size:16px;color:var(--ink);background:var(--card);
+  border:1px solid var(--line);border-radius:10px;padding:11px 12px;appearance:none;-webkit-appearance:none
+}
+textarea{resize:vertical;min-height:56px;font-size:15px}
+select:focus,input:focus,textarea:focus{border-color:var(--focus);outline:none;
+  box-shadow:0 0 0 3px rgba(30,122,101,.14)}
+.field{margin-bottom:12px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* список вакансий */
+.proj{font-family:"JetBrains Mono",monospace;font-size:10.5px;font-weight:700;
+      letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:18px 0 7px}
+.vac{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+     margin-bottom:7px;overflow:hidden}
+.vac.done{background:var(--done);border-color:#B7D6C6}
+.vac.skip{background:var(--skip)}
+.vac-h{display:flex;align-items:center;gap:10px;padding:13px 14px;cursor:pointer}
+.vac-t{flex:1;min-width:0}
+.vac-t b{display:block;font-weight:500;font-size:15px}
+.vac-t span{font-size:12px;color:var(--muted)}
+.tick{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);
+      white-space:nowrap;text-align:right}
+.vac.done .tick{color:var(--accent);font-weight:700}
+.vac-b{display:none;padding:2px 14px 14px;border-top:1px solid var(--line)}
+.vac.open .vac-b{display:block}
+
+/* метрики */
+.m{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.m:last-of-type{border-bottom:0}
+.m-l{flex:1;font-size:14px;line-height:1.25}
+.stp{display:flex;align-items:center;flex-shrink:0}
+.stp button{width:34px;height:36px;border:1px solid var(--line);background:var(--card);
+  font-size:19px;line-height:1;color:var(--muted);cursor:pointer;font-family:inherit}
+.stp button:first-child{border-radius:9px 0 0 9px}
+.stp button:last-child{border-radius:0 9px 9px 0}
+.stp input{width:48px;height:36px;text-align:center;border:1px solid var(--line);
+  border-left:0;border-right:0;border-radius:0;padding:0;
+  font-family:"JetBrains Mono",monospace;font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
+.stp input.z{color:#AEBAB6;font-weight:400}
+
+/* низ */
+.dock{position:fixed;left:0;right:0;bottom:0;background:rgba(231,236,234,.95);
+  backdrop-filter:blur(8px);border-top:1px solid var(--line);
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom))}
+.dock-in{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.tal{flex:1;font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--muted);line-height:1.3}
+.tal b{display:block;font-size:17px;color:var(--ink)}
+
+.note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:10px;padding:11px 13px;font-size:13px;color:var(--muted);margin-bottom:14px}
+.err{color:var(--warn);font-size:13.5px;margin:10px 0 0}
+.ok{background:var(--accent);color:#fff;border-radius:var(--r);padding:20px;text-align:center;margin-top:20px}
+.spin{color:var(--muted);font-size:14px;padding:40px 0;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="scr on" id="s-load"><div class="spin">Загружаю…</div></div>
+
+  <!-- выбор себя при первом входе -->
+  <div class="scr" id="s-bind">
+    <div class="hd"><div class="mark">EasyHunt</div><h1>Первый вход</h1>
+      <p class="sub" id="bind-sub"></p></div>
+    <div class="note">Выбери себя один раз. Дальше форма будет узнавать тебя по аккаунту Telegram.</div>
+    <div class="field"><select id="bind-who"></select></div>
+    <button class="btn wide" id="bind-go">Это я</button>
+    <p class="err" id="bind-err" hidden></p>
+  </div>
+
+  <!-- главный экран -->
+  <div class="scr" id="s-home">
+    <div class="hd"><div class="mark">EasyHunt</div><h1 id="home-hi"></h1>
+      <p class="sub" id="home-sub"></p></div>
+    <button class="big" data-go="report">Отчёт за день<small id="home-cnt"></small></button>
+    <button class="big" data-go="absence">Отсутствие<small>Отпуск, больничный, day off</small></button>
+  </div>
+
+  <!-- отчёт -->
+  <div class="scr" id="s-report">
+    <div class="hd"><div class="mark" id="rep-date"></div><h1>Отчёт за день</h1>
+      <p class="sub">Цифра — сколько кандидатов перешло на этап за день. Не сколько на нём стоит.</p>
+      <button class="link" id="rep-yest"></button></div>
+    <div id="rep-list"></div>
+    <p class="err" id="rep-err" hidden></p>
+    <div id="rep-ok"></div>
+  </div>
+
+  <!-- отсутствие -->
+  <div class="scr" id="s-absence">
+    <div class="hd"><div class="mark">EasyHunt</div><h1>Отсутствие</h1>
+      <p class="sub">Попадёт в табель и в остатки отпуска.</p></div>
+    <div class="field"><label class="lbl" for="ab-type">Тип</label>
+      <select id="ab-type">
+        <option>Отпуск</option><option>Больничный</option><option>Day off</option>
+      </select></div>
+    <div class="row2">
+      <div class="field"><label class="lbl" for="ab-from">С</label><input type="date" id="ab-from"></div>
+      <div class="field"><label class="lbl" for="ab-to">По</label><input type="date" id="ab-to"></div>
+    </div>
+    <div class="field"><label class="lbl" for="ab-note">Комментарий</label>
+      <textarea id="ab-note" placeholder="Необязательно"></textarea></div>
+    <button class="btn wide" id="ab-go">Отправить</button>
+    <button class="btn ghost wide" data-go="home">Назад</button>
+    <p class="err" id="ab-err" hidden></p>
+    <div id="ab-ok"></div>
+  </div>
+</div>
+
+<div class="dock" id="dock" hidden>
+  <div class="dock-in">
+    <div class="tal"><b id="d-cnt">0 из 0</b><span id="d-sub">вакансий пройдено</span></div>
+    <button class="btn" id="d-send" disabled>Отправить</button>
+  </div>
+</div>
+
+<script>
+/* ═════════════ НАСТРОЙКА ═════════════
+   Сюда вставить URL веб-приложения из Apps Script (заканчивается на /exec) */
+var ENDPOINT = "https://script.google.com/macros/s/AKfycbwZNeW2ABObaBLplwL125bl3LTh9p3gn-59u0LMPVqLKTYbSuwJn3IVFAvWm64mxJh5DA/exec";
+/* ═════════════════════════════════════ */
+
+var tg = window.Telegram && window.Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+var $ = function (id) { return document.getElementById(id); };
+
+var FIELDS = {
+  'Рекрутер': [
+    ['new',        'Новых кандидатов в воронке'],
+    ['plan_hr',    'Назначено первичных интервью'],
+    ['hr',         'Проведено первичных интервью'],
+    ['show',       'Показов заказчику'],
+    ['plan_client','Назначено интервью с заказчиком'],
+    ['client',     'Проведено интервью с заказчиком'],
+    ['offer',      'Офферов выставлено']
+  ],
+  'Сорсер': [
+    ['new',        'Новых кандидатов в воронке'],
+    ['plan_hr',    'Назначено первичных интервью'],
+    ['to_recruiter','Передано рекрутеру']
+  ]
+};
+
+var S = { me: null, debug: false, asName: null, vacs: [], data: {}, date: null };
+
+/* ---------- обмен с Apps Script ----------
+   Content-Type намеренно text/plain: с application/json браузер шлёт
+   предварительный OPTIONS, а Apps Script на него не отвечает. */
+function api(action, extra) {
+  var body = { action: action, initData: tg ? tg.initData : '' };
+  if (S.asName) body.asName = S.asName;
+  if (S.debug && S.me) { body.debugName = S.me.name; body.debugRole = S.me.role; }
+  for (var k in (extra || {})) body[k] = extra[k];
+
+  return fetch(ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(body)
+  }).then(function (r) { return r.json(); })
+    .then(function (j) { if (!j.ok) throw new Error(j.error || 'ошибка сервера'); return j; });
+}
+
+function show(name) {
+  ['load','bind','home','report','absence'].forEach(function (n) {
+    $('s-' + n).classList.toggle('on', n === name);
+  });
+  $('dock').hidden = (name !== 'report');
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('[data-go]').forEach(function (b) {
+  b.onclick = function () {
+    var t = b.dataset.go;
+    if (t === 'report') { S.date = S.today; renderReport(); }
+    show(t);
+  };
+});
+
+/* ---------- старт ---------- */
+function boot() {
+  if (!ENDPOINT) { $('s-load').innerHTML = '<p class="err">Не задан ENDPOINT в index.html</p>'; return; }
+  api('init').then(function (j) {
+    if (!j.bound) {
+      S.people = j.people;
+      $('bind-sub').textContent = j.tgName ? ('Telegram: ' + j.tgName) : '';
+      var sel = $('bind-who'); sel.innerHTML = '';
+      j.people.forEach(function (p) {
+        var o = document.createElement('option');
+        o.value = p.name; o.textContent = p.name + ' · ' + p.role; sel.appendChild(o);
+      });
+      show('bind');
+      return;
+    }
+    S.me = j.me; S.debug = !!j.debug; S.vacs = j.vacancies || [];
+    S.today = j.today; S.date = j.today;
+    $('home-hi').textContent = S.me.name.split(' ')[0] + ', привет';
+    $('home-sub').textContent = S.me.role + (S.debug ? ' · режим отладки' : '');
+    $('home-cnt').textContent = S.vacs.length
+      ? (S.vacs.length + ' ' + plural(S.vacs.length, 'вакансия', 'вакансии', 'вакансий') + ' в работе')
+      : 'активных вакансий не найдено';
+    $('ab-from').value = j.today; $('ab-to').value = j.today;
+    show('home');
+  }).catch(function (e) {
+    $('s-load').innerHTML = '<p class="err">' + e.message + '</p>';
+  });
+}
+
+$('bind-go').onclick = function () {
+  var name = $('bind-who').value;
+  if (S.debug === false && !tg) { /* браузер без токена — отладка */ }
+  $('bind-go').disabled = true;
+  api('bind', { name: name }).then(function () { location.reload(); })
+    .catch(function (e) {
+      // без токена бота привязку не делаем — просто работаем «как этот человек»
+      S.asName = name;
+      api('init').then(function (j) {
+        if (!j.bound) throw e;
+        S.me = j.me; S.debug = true; S.vacs = j.vacancies || [];
+        S.today = j.today; S.date = j.today;
+        $('home-hi').textContent = S.me.name.split(' ')[0] + ', привет';
+        $('home-sub').textContent = S.me.role + ' · режим отладки';
+        $('home-cnt').textContent = S.vacs.length + ' в работе';
+        $('ab-from').value = j.today; $('ab-to').value = j.today;
+        show('home');
+      }).catch(function (e2) {
+        $('bind-err').textContent = e2.message; $('bind-err').hidden = false;
+        $('bind-go').disabled = false;
+      });
+    });
+};
+
+function plural(n, a, b, c) {
+  var m = n % 100; if (m > 4 && m < 20) return c;
+  m = n % 10; return m === 1 ? a : (m > 1 && m < 5 ? b : c);
+}
+function vkey(v) { return v.project + '§' + v.title + '§' + v.level; }
+
+/* ---------- экран отчёта ---------- */
+function renderReport() {
+  $('rep-date').textContent = fmt(S.date);
+  $('rep-yest').textContent = (S.date === S.today) ? 'отчёт за вчера' : 'вернуть на сегодня';
+  var list = $('rep-list'); list.innerHTML = '';
+
+  var byProj = {};
+  S.vacs.forEach(function (v) { (byProj[v.project] = byProj[v.project] || []).push(v); });
+
+  Object.keys(byProj).forEach(function (p) {
+    var h = document.createElement('div'); h.className = 'proj'; h.textContent = p;
+    list.appendChild(h);
+
+    byProj[p].forEach(function (v) {
+      var key = vkey(v);
+      var d = S.data[key] = S.data[key] || { values: {}, comment: '', state: '' };
+      var fields = FIELDS[S.me.role] || FIELDS['Рекрутер'];
+
+      var el = document.createElement('div');
+      el.className = 'vac' + (d.state ? ' ' + d.state : '');
+      el.innerHTML =
+        '<div class="vac-h"><div class="vac-t"><b></b><span></span></div><div class="tick"></div></div>' +
+        '<div class="vac-b"></div>';
+      el.querySelector('b').textContent = v.title;
+      el.querySelector('.vac-t span').textContent = v.level || '';
+      list.appendChild(el);
+
+      var body = el.querySelector('.vac-b');
+      fields.forEach(function (f) {
+        if (!(f[0] in d.values)) d.values[f[0]] = 0;
+        var m = document.createElement('div'); m.className = 'm';
+        m.innerHTML = '<div class="m-l"></div><div class="stp">' +
+          '<button data-d="-1">−</button><input type="text" inputmode="numeric" value="0" class="z">' +
+          '<button data-d="1">+</button></div>';
+        m.querySelector('.m-l').textContent = f[1];
+        var inp = m.querySelector('input');
+        function set(n) {
+          n = Math.max(0, Math.min(999, n | 0));
+          d.values[f[0]] = n; inp.value = n; inp.classList.toggle('z', n === 0);
+        }
+        set(d.values[f[0]]);
+        m.querySelectorAll('button').forEach(function (b) {
+          b.onclick = function () { set(d.values[f[0]] + Number(b.dataset.d)); };
+        });
+        inp.oninput = function () { inp.value = inp.value.replace(/\D/g, ''); };
+        inp.onchange = inp.onblur = function () { set(Number(inp.value) || 0); };
+        inp.onfocus = function () { inp.select(); };
+        body.appendChild(m);
+      });
+
+      var ta = document.createElement('textarea');
+      ta.placeholder = 'Комментарий'; ta.value = d.comment; ta.style.marginTop = '10px';
+      ta.oninput = function () { d.comment = ta.value.trim(); };
+      body.appendChild(ta);
+
+      var b1 = document.createElement('button');
+      b1.className = 'btn wide'; b1.textContent = 'По этой вакансии всё';
+      b1.onclick = function () { d.state = 'done'; close(el, v, d); };
+      var b2 = document.createElement('button');
+      b2.className = 'btn ghost wide'; b2.textContent = 'Ничего не было';
+      b2.onclick = function () {
+        Object.keys(d.values).forEach(function (k) { d.values[k] = 0; });
+        d.state = 'skip'; close(el, v, d);
+      };
+      body.appendChild(b1); body.appendChild(b2);
+
+      el.querySelector('.vac-h').onclick = function () {
+        var open = el.classList.toggle('open');
+        if (open) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+      paint(el, d);
+    });
+  });
+  tally();
+}
+
+function close(el, v, d) {
+  el.classList.remove('open');
+  el.classList.remove('done', 'skip'); el.classList.add(d.state);
+  paint(el, d); tally();
+}
+function paint(el, d) {
+  var sum = 0; for (var k in d.values) sum += d.values[k];
+  el.querySelector('.tick').textContent =
+    d.state === 'skip' ? 'без движения' : (d.state === 'done' ? '✓ ' + sum : '');
+}
+function tally() {
+  var total = S.vacs.length, done = 0;
+  S.vacs.forEach(function (v) { if ((S.data[vkey(v)] || {}).state) done++; });
+  $('d-cnt').textContent = done + ' из ' + total;
+  $('d-send').disabled = (done === 0);
+  $('d-send').textContent = (done < total) ? 'Отправить ' + done : 'Отправить';
+}
+function fmt(iso) {
+  var p = iso.split('-');
+  return p[2] + '.' + p[1] + '.' + p[0];
+}
+$('rep-yest').onclick = function () {
+  if (S.date === S.today) {
+    var d = new Date(S.today); d.setDate(d.getDate() - 1);
+    S.date = d.toISOString().slice(0, 10);
+  } else S.date = S.today;
+  renderReport();
+};
+
+/* ---------- отправка ---------- */
+$('d-send').onclick = function () {
+  var rows = [];
+  S.vacs.forEach(function (v) {
+    var d = S.data[vkey(v)];
+    if (!d || !d.state) return;
+    rows.push({
+      project: v.project, title: v.title, level: v.level,
+      skipped: d.state === 'skip', comment: d.comment, values: d.values
+    });
+  });
+  $('rep-err').hidden = true;
+  $('d-send').disabled = true; $('d-send').textContent = 'Отправляю…';
+  api('report', { date: S.date, rows: rows }).then(function (j) {
+    $('rep-list').innerHTML = '';
+    $('rep-ok').innerHTML = '<div class="ok">Отчёт принят<br>' +
+      'строк: ' + (j.added + j.updated) + ' за ' + fmt(j.date) + '</div>';
+    $('dock').hidden = true;
+    if (tg) setTimeout(function () { tg.close(); }, 1600);
+  }).catch(function (e) {
+    $('rep-err').textContent = e.message; $('rep-err').hidden = false;
+    $('d-send').disabled = false; $('d-send').textContent = 'Отправить';
+  });
+};
+
+/* ---------- отсутствие ---------- */
+$('ab-go').onclick = function () {
+  $('ab-err').hidden = true;
+  if (!$('ab-from').value) {
+    $('ab-err').textContent = 'Укажи дату начала'; $('ab-err').hidden = false; return;
+  }
+  $('ab-go').disabled = true; $('ab-go').textContent = 'Отправляю…';
+  api('absence', {
+    type: $('ab-type').value, from: $('ab-from').value,
+    to: $('ab-to').value || $('ab-from').value, comment: $('ab-note').value.trim()
+  }).then(function (j) {
+    $('ab-ok').innerHTML = '<div class="ok">Записано в табель<br>дней отмечено: ' + j.marked + '</div>';
+    $('ab-go').hidden = true;
+    if (tg) setTimeout(function () { tg.close(); }, 1600);
+  }).catch(function (e) {
+    $('ab-err').textContent = e.message; $('ab-err').hidden = false;
+    $('ab-go').disabled = false; $('ab-go').textContent = 'Отправить';
+  });
+};
+
+boot();
+</script>
+</body>
+</html>
