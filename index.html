@@ -378,8 +378,11 @@ function boot() {
     if (tg) { $('quit').hidden = false; $('quit').onclick = function () { tg.close(); }; }
     show('home');
   }).catch(function (e) {
+    var raw = (tg && tg.initData) ? tg.initData : '';
     $('s-load').innerHTML =
       '<p class="err" style="text-align:left">' + e.message + '</p>' +
+      '<p class="err" style="text-align:left;opacity:.75">' +
+      'ФОРМА отправила длину ' + raw.length + ' · начало ' + raw.slice(0, 24) + '</p>' +
       '<button class="btn wide" id="retry">Повторить</button>';
     $('retry').onclick = function () {
       $('s-load').innerHTML = '<div class="spin">Загружаю…</div>';
