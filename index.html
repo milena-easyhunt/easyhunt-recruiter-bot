@@ -196,6 +196,7 @@ select:focus,input:focus,textarea:focus{
     </div>
     <button class="big" data-go="report">Отчёт за день<small id="home-cnt"></small></button>
     <button class="big" data-go="absence">Отпуск, day off, больничный</button>
+    <button class="btn ghost wide" id="quit" style="margin-top:18px" hidden>Закрыть</button>
   </div>
 
   <div class="scr" id="s-report">
@@ -324,12 +325,29 @@ function show(name) {
     $('s-' + n).classList.toggle('on', n === name);
   });
   $('dock').hidden = (name !== 'report');
+  // стрелка «назад» в шапке Telegram — только на внутренних экранах
+  if (tg && tg.BackButton) {
+    if (name === 'report' || name === 'absence') tg.BackButton.show();
+    else tg.BackButton.hide();
+  }
   window.scrollTo(0, 0);
 }
+
+function goHome() { show('home'); }
+if (tg && tg.BackButton) tg.BackButton.onClick(goHome);
+
 document.querySelectorAll('[data-go]').forEach(function (b) {
   b.onclick = function () {
     var t = b.dataset.go;
-    if (t === 'report') { S.date = S.today; renderReport(); }
+    if (t === 'report') {
+      $('rep-ok').innerHTML = ''; $('rep-err').hidden = true;
+      S.date = S.today; renderReport();
+    }
+    if (t === 'absence') {
+      $('ab-ok').innerHTML = ''; $('ab-err').hidden = true;
+      $('ab-go').hidden = false; $('ab-go').disabled = false;
+      $('ab-go').textContent = 'Отправить';
+    }
     show(t);
   };
 });
@@ -357,6 +375,7 @@ function boot() {
       ? (S.vacs.length + ' ' + plural(S.vacs.length, 'вакансия', 'вакансии', 'вакансий') + ' в работе')
       : 'активных вакансий не найдено';
     $('ab-from').value = j.today; $('ab-to').value = j.today;
+    if (tg) { $('quit').hidden = false; $('quit').onclick = function () { tg.close(); }; }
     show('home');
   }).catch(function (e) {
     $('s-load').innerHTML =
@@ -520,9 +539,11 @@ $('d-send').onclick = function () {
   api('report', { date: S.date, rows: rows }).then(function (j) {
     $('rep-list').innerHTML = '';
     $('rep-ok').innerHTML = '<div class="ok">Отчёт принят<br>' +
-      'строк: ' + (j.added + j.updated) + ' за ' + fmt(j.date) + '</div>';
+      '<span style="font-weight:400;opacity:.85">строк: ' + (j.added + j.updated) +
+      ' за ' + fmt(j.date) + '</span></div>' +
+      '<button class="btn ghost wide" id="fin">В меню</button>';
     $('dock').hidden = true;
-    if (tg) setTimeout(function () { tg.close(); }, 1600);
+    $('fin').onclick = goHome;
   }).catch(function (e) {
     $('rep-err').textContent = e.message; $('rep-err').hidden = false;
     $('d-send').disabled = false; $('d-send').textContent = 'Отправить';
@@ -542,9 +563,10 @@ $('ab-go').onclick = function () {
   }).then(function (j) {
     $('ab-ok').innerHTML = '<div class="ok">Заявка отправлена<br>' +
       '<span style="font-weight:400;opacity:.85">ждёт решения ' +
-      (j.approver || 'руководителя') + '</span></div>';
+      (j.approver || 'руководителя') + '</span></div>' +
+      '<button class="btn ghost wide" id="fin2">В меню</button>';
     $('ab-go').hidden = true;
-    if (tg) setTimeout(function () { tg.close(); }, 1600);
+    $('fin2').onclick = goHome;
   }).catch(function (e) {
     $('ab-err').textContent = e.message; $('ab-err').hidden = false;
     $('ab-go').disabled = false; $('ab-go').textContent = 'Отправить';
