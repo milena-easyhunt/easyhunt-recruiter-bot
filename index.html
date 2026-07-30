@@ -283,12 +283,40 @@ function api(action, extra) {
   if (S.debug && S.me) { body.debugName = S.me.name; body.debugRole = S.me.role; }
   for (var k in (extra || {})) body[k] = extra[k];
 
-  return fetch(ENDPOINT, {
+  var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, 25000);
+
+  var opts = {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify(body)
-  }).then(function (r) { return r.json(); })
-    .then(function (j) { if (!j.ok) throw new Error(j.error || 'ошибка сервера'); return j; });
+  };
+  if (ctrl) opts.signal = ctrl.signal;
+
+  return fetch(ENDPOINT, opts)
+    .then(function (r) { clearTimeout(timer); return r.text(); })
+    .then(function (t) {
+      var j;
+      try { j = JSON.parse(t); }
+      catch (e) {
+        throw new Error('Скрипт вернул не JSON — похоже, развёртывание сломано ' +
+                        'или код вставлен не целиком.');
+      }
+      if (!j.ok) throw new Error(j.error || 'ошибка сервера');
+      return j;
+    })
+    .catch(function (e) {
+      clearTimeout(timer);
+      if (e && e.name === 'AbortError') {
+        throw new Error('Скрипт не ответил за 25 секунд. Попробуй ещё раз — ' +
+                        'после развёртывания первый запуск бывает долгим.');
+      }
+      if (e instanceof TypeError) {
+        throw new Error('Не достучалась до скрипта. Проверь, что развёртывание ' +
+                        'открыто для «Все».');
+      }
+      throw e;
+    });
 }
 
 function show(name) {
@@ -331,7 +359,13 @@ function boot() {
     $('ab-from').value = j.today; $('ab-to').value = j.today;
     show('home');
   }).catch(function (e) {
-    $('s-load').innerHTML = '<p class="err">' + e.message + '</p>';
+    $('s-load').innerHTML =
+      '<p class="err" style="text-align:left">' + e.message + '</p>' +
+      '<button class="btn wide" id="retry">Повторить</button>';
+    $('retry').onclick = function () {
+      $('s-load').innerHTML = '<div class="spin">Загружаю…</div>';
+      boot();
+    };
   });
 }
 
