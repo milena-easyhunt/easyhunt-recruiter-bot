@@ -46,23 +46,30 @@ body{
 
 .hd{padding:24px 0 16px}
 
-/* шапка с фирменным фоном — на стартовых экранах */
+/* шапка с фирменным фоном — композиция как на сайте:
+   текст на чёрном слева, свечение уходит вправо */
 .hd-hero{
-  position:relative; margin:0 -16px 6px; padding:30px 16px 26px; overflow:hidden;
+  position:relative; margin:0 -16px 6px; padding:34px 16px 30px;
+  min-height:210px; display:flex; flex-direction:column; justify-content:flex-end;
+  overflow:hidden;
 }
 .hd-hero::before{
   content:''; position:absolute; inset:0;
-  background:url('bg.jpg') center 35% / cover no-repeat;
-  opacity:.9;
+  background:url('bg.jpg') right center / cover no-repeat;
 }
 .hd-hero::after{
   content:''; position:absolute; inset:0;
-  background:linear-gradient(180deg,
-    rgba(8,8,12,.30) 0%, rgba(8,8,12,.62) 55%, rgba(8,8,12,.94) 88%, #08080C 100%);
+  background:
+    linear-gradient(90deg,
+      #08080C 0%, rgba(8,8,12,.95) 24%, rgba(8,8,12,.72) 46%,
+      rgba(8,8,12,.34) 72%, rgba(8,8,12,.08) 100%),
+    linear-gradient(180deg,
+      rgba(8,8,12,.55) 0%, rgba(8,8,12,.10) 34%,
+      rgba(8,8,12,.72) 86%, #08080C 100%);
 }
 .hd-hero > *{position:relative; z-index:1}
-.hd-hero h1{text-shadow:0 2px 18px rgba(0,0,0,.55)}
-.hd-hero .sub{color:#C9C9D6; text-shadow:0 1px 12px rgba(0,0,0,.6)}
+.hd-hero h1{text-shadow:0 2px 20px rgba(0,0,0,.7)}
+.hd-hero .sub{color:#C4C4D2; text-shadow:0 1px 14px rgba(0,0,0,.75)}
 h1{
   font-size:25px;font-weight:700;line-height:1.15;
   letter-spacing:-.025em;margin:14px 0 6px
@@ -197,7 +204,7 @@ select:focus,input:focus,textarea:focus{
   <div class="scr" id="s-bind">
     <div class="hd hd-hero">
       <span class="wordmark">easy<span class="colon"><i></i><i></i></span>hunt</span>
-      <h1>Первый вход</h1>
+      <h1>Давай знакомиться</h1>
       <p class="sub" id="bind-sub"></p>
     </div>
     <div class="note">Выбери себя один раз. Дальше форма будет узнавать тебя по аккаунту Telegram.</div>
