@@ -129,14 +129,6 @@ h1{
   width:8px;height:8px;transform:rotate(45deg);background:var(--magenta)
 }
 
-/* восемь имён в столбик не помещаются — ставим в две колонки без ролей */
-.pick.grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.pick.grid button{
-  padding:12px 22px 12px 13px;font-size:13.5px;font-weight:600;line-height:1.25
-}
-.pick.grid button span{display:none}
-.pick.grid button[aria-pressed=true]::before{right:9px;width:7px;height:7px;margin-top:-3.5px}
-
 /* ─── поля ─── */
 label.lbl{display:block;font-size:12.5px;color:var(--muted);margin:0 0 6px}
 select,input,textarea{
@@ -243,7 +235,7 @@ select:focus,input:focus,textarea:focus{
     </div>
     <div class="note">Выбери себя один раз. Дальше форма будет узнавать тебя по аккаунту Telegram.</div>
     <div class="field"><span class="lbl">Кто ты</span>
-      <div class="pick grid" id="bind-list"></div>
+      <div class="pick" id="bind-list"></div>
       <input type="hidden" id="bind-who"></div>
     <div class="field"><label class="lbl" for="bind-nick">Как к тебе обращаться</label>
       <input type="text" id="bind-nick" maxlength="30" placeholder="Имя"></div>
