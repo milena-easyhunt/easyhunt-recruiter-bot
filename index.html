@@ -227,6 +227,12 @@ select:focus,input:focus,textarea:focus{
   font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;vertical-align:2px
 }
 .empty{color:var(--dim);font-size:14px;padding:30px 0;text-align:center}
+.group{
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:22px 0 8px;
+  display:flex;align-items:center;gap:8px
+}
+.group::after{content:'';flex:1;height:1px;background:var(--line)}
 
 /* ─── низ ─── */
 .dock{
@@ -405,13 +411,22 @@ function loadRequests() {
       : 'Здесь видно, что с ними стало.';
     box.innerHTML = '';
 
-    var all = j.pending.concat(j.decided);
+    var stale = j.stale || [];
+    var all = j.pending.concat(stale, j.decided);
     if (!all.length) {
       box.innerHTML = '<div class="empty">Пока пусто</div>';
       return;
     }
 
+    var staleShown = false;
     all.forEach(function (r) {
+      if (stale.indexOf(r) >= 0 && !staleShown) {
+        staleShown = true;
+        var h = document.createElement('div');
+        h.className = 'group';
+        h.textContent = 'Старые — сроки уже прошли';
+        box.appendChild(h);
+      }
       var el = document.createElement('div');
       el.className = 'req ' + r.state;
       var head = j.isApprover ? r.name : r.type;
@@ -427,7 +442,26 @@ function loadRequests() {
       el.querySelector('.meta').textContent = meta;
       if (r.comment) el.querySelector('.cmt').textContent = r.comment;
 
-      if (j.isApprover && r.state === 'pending') {
+      if (j.isApprover && r.state === 'pending' && stale.indexOf(r) >= 0) {
+        // По прошедшим срокам решать нечего — только убрать с глаз
+        var hide = document.createElement('button');
+        hide.className = 'btn ghost wide';
+        hide.style.marginTop = '12px';
+        hide.textContent = 'Убрать из списка';
+        hide.onclick = function () {
+          if (S.busy) return;
+          S.busy = true; hide.disabled = true; hide.textContent = 'Убираю…';
+          api('decide', { row: r.row, archive: true }).then(function () {
+            S.busy = false; loadRequests();
+          }).catch(function (e) {
+            S.busy = false; hide.disabled = false; hide.textContent = 'Убрать из списка';
+            var p = document.createElement('p');
+            p.className = 'err req-err'; p.style.margin = '10px 0 0';
+            p.textContent = e.message; el.appendChild(p);
+          });
+        };
+        el.appendChild(hide);
+      } else if (j.isApprover && r.state === 'pending') {
         var acts = document.createElement('div');
         acts.className = 'acts';
         var yes = document.createElement('button');
