@@ -426,7 +426,19 @@ document.querySelectorAll('[data-go]').forEach(function (b) {
 /* ---------- старт ---------- */
 function boot() {
   if (!ENDPOINT) { $('s-load').innerHTML = '<p class="err">Не задан ENDPOINT в index.html</p>'; return; }
+  // холодный старт Apps Script — до 15 секунд, поэтому объясняем задержку
+  var t1 = setTimeout(function () {
+    var el = $('s-load').querySelector('.spin');
+    if (el) el.textContent = 'Просыпаюсь…';
+  }, 3500);
+  var t2 = setTimeout(function () {
+    var el = $('s-load').querySelector('.spin');
+    if (el) el.innerHTML = 'Первый запуск бывает долгим,<br>подожди меня, пожалуйста';
+  }, 9000);
+  var stop = function () { clearTimeout(t1); clearTimeout(t2); };
+
   api('init').then(function (j) {
+    stop();
     if (!j.bound) {
       S.people = j.people;
       $('bind-sub').textContent = j.tgName ? ('Telegram: ' + j.tgName) : '';
@@ -450,6 +462,7 @@ function boot() {
     if (tg) { $('quit').hidden = false; $('quit').onclick = function () { tg.close(); }; }
     show('home');
   }).catch(function (e) {
+    stop();
     var raw = (tg && tg.initData) ? tg.initData : '';
     $('s-load').innerHTML =
       '<p class="err" style="text-align:left">' + e.message + '</p>' +
