@@ -23,6 +23,7 @@
   --r:14px;
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+[hidden]{display:none !important}
 html,body{margin:0;padding:0;background:var(--bg)}
 body{
   color:var(--ink);
@@ -416,6 +417,7 @@ document.querySelectorAll('[data-go]').forEach(function (b) {
       $('ab-ok').innerHTML = ''; $('ab-err').hidden = true;
       $('ab-go').hidden = false; $('ab-go').disabled = false;
       $('ab-go').textContent = 'Отправить';
+      $('ab-note').value = '';
     }
     show(t);
   };
@@ -671,8 +673,13 @@ $('ab-go').onclick = function () {
     $('ab-ok').innerHTML = '<div class="ok">Заявка отправлена<br>' +
       '<span style="font-weight:400;opacity:.85">ждёт решения ' +
       (j.approver || 'руководителя') + '</span></div>' +
+      '<p class="sub" style="margin:12px 0 0">Можно оформить ещё одну — ' +
+      'выбери тип и даты заново.</p>' +
       '<button class="btn ghost wide" id="fin2">В меню</button>';
-    $('ab-go').hidden = true;
+    // не прячем кнопку: заявок может быть несколько подряд
+    $('ab-go').disabled = false;
+    $('ab-go').textContent = 'Отправить ещё одну';
+    $('ab-note').value = '';
     $('fin2').onclick = goHome;
   }).catch(function (e) {
     $('ab-err').textContent = e.message; $('ab-err').hidden = false;
