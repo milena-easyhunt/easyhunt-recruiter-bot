@@ -197,6 +197,37 @@ select:focus,input:focus,textarea:focus{
 }
 .stp input.z{color:var(--dim);font-weight:400}
 
+/* ─── заявки ─── */
+.req{
+  position:relative;background:var(--surface);border:1px solid var(--line);
+  border-radius:12px;padding:14px 16px;margin-bottom:8px;overflow:hidden
+}
+.req::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line)}
+.req.pending::after{background:var(--grad)}
+.req.approved::after{background:#2E9E6B}
+.req.rejected::after{background:#9E3B27}
+.req b{display:block;font-size:15px;font-weight:600}
+.req .meta{font-size:13px;color:var(--muted);margin-top:3px}
+.req .cmt{
+  font-size:13px;color:#C4C4D2;margin-top:8px;
+  padding-left:10px;border-left:2px solid var(--line)
+}
+.req .acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.req .acts .btn{padding:11px 12px;font-size:14px}
+.state{
+  display:inline-block;margin-top:8px;font-family:'JetBrains Mono',monospace;
+  font-size:10.5px;letter-spacing:.1em;text-transform:uppercase
+}
+.state.pending{color:var(--muted)}
+.state.approved{color:#4FC08D}
+.state.rejected{color:#FF6B8A}
+.badge{
+  display:inline-block;min-width:20px;padding:1px 7px;margin-left:8px;
+  border-radius:10px;background:var(--grad);color:#fff;
+  font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;vertical-align:2px
+}
+.empty{color:var(--dim);font-size:14px;padding:30px 0;text-align:center}
+
 /* ─── низ ─── */
 .dock{
   position:fixed;left:0;right:0;bottom:0;
@@ -252,6 +283,7 @@ select:focus,input:focus,textarea:focus{
     </div>
     <button class="big" data-go="report">Отчёт за день<small id="home-cnt"></small></button>
     <button class="big" data-go="absence">Отпуск, day off, больничный</button>
+    <button class="big" data-go="requests" id="btn-req" hidden>Заявки<small id="req-cnt"></small></button>
     <button class="btn ghost wide" id="quit" style="margin-top:18px" hidden>Закрыть</button>
   </div>
 
@@ -287,6 +319,16 @@ select:focus,input:focus,textarea:focus{
     <button class="btn ghost wide" data-go="home">Назад</button>
     <p class="err" id="ab-err" hidden></p>
     <div id="ab-ok"></div>
+  </div>
+  <div class="scr" id="s-requests">
+    <div class="hd">
+      <span class="wordmark">easy<span class="colon"><i></i><i></i></span>hunt</span>
+      <h1 id="req-title">Заявки</h1>
+      <p class="sub" id="req-sub"></p>
+    </div>
+    <div id="req-list"></div>
+    <p class="err" id="req-err" hidden></p>
+    <button class="btn ghost wide" data-go="home">В меню</button>
   </div>
 </div>
 
@@ -341,6 +383,100 @@ var SHORT = {
   'Алёна Зубарева':        'Алёна',
   'Александр Малышев':     'Саша'
 };
+function fmtRange(a, b, days) {
+  var d = function (x) { var p = x.split('-'); return p[2] + '.' + p[1]; };
+  if (!b || a === b) return d(a);
+  return d(a) + ' — ' + d(b) + ' · ' + days + ' дн.';
+}
+
+var STATE_RU = { pending: 'ждёт решения', approved: 'согласовано', rejected: 'отклонено' };
+
+/** Раздел заявок: согласующему — чужие на решение, остальным — свои со статусом. */
+function loadRequests() {
+  var box = $('req-list');
+  box.innerHTML = '<div class="empty">Загружаю…</div>';
+  $('req-err').hidden = true;
+
+  api('requests').then(function (j) {
+    $('req-title').textContent = j.isApprover ? 'Заявки на согласование' : 'Мои заявки';
+    $('req-sub').textContent = j.isApprover
+      ? 'Решение сразу попадёт в табель.'
+      : 'Здесь видно, что с ними стало.';
+    box.innerHTML = '';
+
+    var all = j.pending.concat(j.decided);
+    if (!all.length) {
+      box.innerHTML = '<div class="empty">Пока пусто</div>';
+      return;
+    }
+
+    all.forEach(function (r) {
+      var el = document.createElement('div');
+      el.className = 'req ' + r.state;
+      var head = j.isApprover ? r.name : r.type;
+      var meta = j.isApprover
+        ? (r.type + ' · ' + fmtRange(r.from, r.to, r.days))
+        : fmtRange(r.from, r.to, r.days);
+
+      el.innerHTML =
+        '<b></b><div class="meta"></div>' +
+        (r.comment ? '<div class="cmt"></div>' : '') +
+        '<span class="state ' + r.state + '">' + STATE_RU[r.state] + '</span>';
+      el.querySelector('b').textContent = head;
+      el.querySelector('.meta').textContent = meta;
+      if (r.comment) el.querySelector('.cmt').textContent = r.comment;
+
+      if (j.isApprover && r.state === 'pending') {
+        var acts = document.createElement('div');
+        acts.className = 'acts';
+        var yes = document.createElement('button');
+        yes.className = 'btn';
+        yes.textContent = (r.type === 'Больничный') ? 'Принять' : 'Согласовать';
+        var no = document.createElement('button');
+        no.className = 'btn ghost';
+        no.textContent = 'Отклонить';
+        var decide = function (ok) {
+          yes.disabled = no.disabled = true;
+          yes.textContent = ok ? 'Сохраняю…' : yes.textContent;
+          api('decide', { row: r.row, approve: ok }).then(function () {
+            loadRequests();
+          }).catch(function (e) {
+            $('req-err').textContent = e.message; $('req-err').hidden = false;
+            yes.disabled = no.disabled = false;
+          });
+        };
+        yes.onclick = function () { decide(true); };
+        no.onclick = function () { decide(false); };
+        acts.appendChild(yes); acts.appendChild(no);
+        el.appendChild(acts);
+      }
+      box.appendChild(el);
+    });
+
+    paintReqBadge(j.isApprover, j.count, all.length);
+  }).catch(function (e) {
+    box.innerHTML = '';
+    $('req-err').textContent = e.message; $('req-err').hidden = false;
+  });
+}
+
+function paintReqBadge(isApprover, pending, total) {
+  var btn = $('btn-req');
+  if (!isApprover && !total) { btn.hidden = true; return; }
+  btn.hidden = false;
+  btn.childNodes[0].nodeValue = isApprover ? 'Заявки' : 'Мои заявки';
+  $('req-cnt').textContent = isApprover
+    ? (pending ? pending + ' ждут решения' : 'новых нет')
+    : (total + ' всего');
+  var old = btn.querySelector('.badge');
+  if (old) old.remove();
+  if (isApprover && pending) {
+    var b = document.createElement('span');
+    b.className = 'badge'; b.textContent = pending;
+    btn.insertBefore(b, $('req-cnt'));
+  }
+}
+
 function shortName(full) {
   return SHORT[full] || String(full || '').split(' ')[0];
 }
@@ -391,13 +527,13 @@ function api(action, extra) {
 }
 
 function show(name) {
-  ['load','bind','home','report','absence'].forEach(function (n) {
+  ['load','bind','home','report','absence','requests'].forEach(function (n) {
     $('s-' + n).classList.toggle('on', n === name);
   });
   $('dock').hidden = (name !== 'report');
   // стрелка «назад» в шапке Telegram — только на внутренних экранах
   if (tg && tg.BackButton) {
-    if (name === 'report' || name === 'absence') tg.BackButton.show();
+    if (name === 'report' || name === 'absence' || name === 'requests') tg.BackButton.show();
     else tg.BackButton.hide();
   }
   window.scrollTo(0, 0);
@@ -413,6 +549,7 @@ document.querySelectorAll('[data-go]').forEach(function (b) {
       $('rep-ok').innerHTML = ''; $('rep-err').hidden = true;
       S.date = S.today; renderReport();
     }
+    if (t === 'requests') loadRequests();
     if (t === 'absence') {
       $('ab-ok').innerHTML = ''; $('ab-err').hidden = true;
       $('ab-go').hidden = false; $('ab-go').disabled = false;
@@ -461,6 +598,10 @@ function boot() {
     $('ab-from').value = j.today; $('ab-to').value = j.today;
     if (tg) { $('quit').hidden = false; $('quit').onclick = function () { tg.close(); }; }
     show('home');
+    // счётчик заявок подтягиваем фоном, чтобы не тормозить вход
+    api('requests').then(function (q) {
+      paintReqBadge(q.isApprover, q.count, q.pending.length + q.decided.length);
+    }).catch(function () {});
   }).catch(function (e) {
     stop();
     var raw = (tg && tg.initData) ? tg.initData : '';
