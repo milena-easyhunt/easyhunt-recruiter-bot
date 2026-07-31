@@ -80,14 +80,14 @@ h1{
 /* ─── кнопки ─── */
 .big{
   position:relative;display:block;width:100%;text-align:left;
-  background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
-  padding:19px 18px;margin-bottom:10px;cursor:pointer;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:19px 18px;margin-bottom:10px;cursor:pointer;overflow:hidden;
   font-family:inherit;font-size:17px;font-weight:600;color:var(--ink);
   transition:border-color .15s,background .15s
 }
+/* полоска во всю высоту, обрезается скруглением — как на плашке-подсказке */
 .big::after{
-  content:'';position:absolute;left:0;top:16px;bottom:16px;width:3px;
-  border-radius:0 3px 3px 0;background:var(--grad);opacity:.9
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--grad)
 }
 .big small{display:block;font-size:13px;color:var(--muted);margin-top:4px;font-weight:400}
 .big:active{background:var(--surface2);border-color:#33333F}
