@@ -1,4 +1,4 @@
-<!-- easyhunt form · v9-заявки-в-миниаппе -->
+<!-- easyhunt form · v12-имена -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -235,6 +235,29 @@ select:focus,input:focus,textarea:focus{
 }
 .group::after{content:'';flex:1;height:1px;background:var(--line)}
 
+/* решённые занимают одну строку и по умолчанию свёрнуты */
+.fold{
+  display:flex;align-items:center;gap:8px;width:100%;margin:22px 0 8px;
+  background:none;border:0;padding:0;cursor:pointer;
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--dim);text-align:left
+}
+.fold::after{content:'';flex:1;height:1px;background:var(--line)}
+.fold i{font-style:normal;transition:transform .15s;display:inline-block}
+.fold[aria-expanded=true] i{transform:rotate(90deg)}
+.done-list{display:none}
+.done-list.open{display:block}
+.row{
+  display:flex;align-items:baseline;gap:8px;padding:9px 12px;
+  border-bottom:1px solid var(--line);font-size:13.5px
+}
+.row:last-child{border-bottom:0}
+.row .dot{width:6px;height:6px;flex-shrink:0;transform:rotate(45deg)}
+.row .dot.approved{background:#2E9E6B}
+.row .dot.rejected{background:#9E3B27}
+.row .who{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .when{color:var(--muted);font-size:12.5px;white-space:nowrap}
+
 /* ─── низ ─── */
 .dock{
   position:fixed;left:0;right:0;bottom:0;
@@ -413,8 +436,8 @@ function loadRequests() {
     box.innerHTML = '';
 
     var stale = j.stale || [];
-    var all = j.pending.concat(stale, j.decided);
-    if (!all.length) {
+    var all = j.pending.concat(stale);
+    if (!all.length && !j.decided.length) {
       box.innerHTML = '<div class="empty">Пока пусто</div>';
       return;
     }
@@ -502,11 +525,42 @@ function loadRequests() {
       box.appendChild(el);
     });
 
-    paintReqBadge(j.isApprover, j.count, all.length);
+    if (j.decided.length) drawDecided(box, j.decided, j.isApprover);
+    paintReqBadge(j.isApprover, j.pendingCount, all.length + j.decided.length);
   }).catch(function (e) {
     box.innerHTML = '';
     $('req-err').textContent = e.message; $('req-err').hidden = false;
   });
+}
+
+/** Решённые не должны занимать экран: одна строка на заявку, блок свёрнут. */
+function drawDecided(box, list, isApprover) {
+  var head = document.createElement('button');
+  head.type = 'button';
+  head.className = 'fold';
+  head.setAttribute('aria-expanded', 'false');
+  head.innerHTML = '<i>›</i> Решённые · ' + list.length;
+
+  var wrap = document.createElement('div');
+  wrap.className = 'done-list';
+
+  list.forEach(function (r) {
+    var row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = '<span class="dot ' + r.state + '"></span>' +
+                    '<span class="who"></span><span class="when"></span>';
+    row.querySelector('.who').textContent =
+      (isApprover ? r.name + ' · ' : '') + r.type;
+    row.querySelector('.when').textContent = fmtRange(r.from, r.to, r.days);
+    wrap.appendChild(row);
+  });
+
+  head.onclick = function () {
+    var open = wrap.classList.toggle('open');
+    head.setAttribute('aria-expanded', String(open));
+  };
+  box.appendChild(head);
+  box.appendChild(wrap);
 }
 
 function paintReqBadge(isApprover, pending, total) {
@@ -650,19 +704,11 @@ function boot() {
 
     // Кнопка заявок опирается на роль из init. Раньше её показывал фоновый запрос —
     // тот падал, и раздел пропадал у согласующего совсем.
+    // Счётчик приезжает вместе с init — раньше он ехал вторым запросом,
+    // и кнопка появлялась заметно позже остальных.
     S.isApprover = !!j.isApprover;
-    if (S.isApprover) {
-      $('btn-req').hidden = false;
-      $('btn-req').childNodes[0].nodeValue = 'Заявки';
-      $('req-cnt').textContent = 'загружаю…';
-    }
+    if (S.isApprover) paintReqBadge(true, Number(j.pendingCount) || 0, 1);
     show('home');
-
-    api('requests').then(function (q) {
-      paintReqBadge(q.isApprover, q.count, q.pending.length + q.decided.length);
-    }).catch(function () {
-      if (S.isApprover) $('req-cnt').textContent = 'открой, чтобы посмотреть';
-    });
   }).catch(function (e) {
     stop();
     var raw = (tg && tg.initData) ? tg.initData : '';
