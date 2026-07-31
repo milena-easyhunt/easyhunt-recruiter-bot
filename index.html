@@ -49,9 +49,8 @@ body{
 /* шапка с фирменным фоном — композиция как на сайте:
    текст на чёрном слева, свечение уходит вправо */
 .hd-hero{
-  position:relative; margin:0 -16px 6px; padding:34px 16px 30px;
-  min-height:210px; display:flex; flex-direction:column; justify-content:flex-end;
-  overflow:hidden;
+  position:relative; margin:0 -16px 6px; padding:22px 16px 34px;
+  min-height:230px; overflow:hidden;
 }
 .hd-hero::before{
   content:''; position:absolute; inset:0;
@@ -60,15 +59,13 @@ body{
 .hd-hero::after{
   content:''; position:absolute; inset:0;
   background:
-    /* плотная чернота под текстом, дальше резко сходит на нет */
-    linear-gradient(90deg,
-      #08080C 0%, #08080C 38%, rgba(8,8,12,.88) 52%,
-      rgba(8,8,12,.30) 68%, rgba(8,8,12,0) 80%),
-    /* только чтобы шапка не обрывалась линией */
+    /* по диагонали: верх открыт переливам, чернота уходит вниз-вправо под текст */
+    linear-gradient(108deg,
+      rgba(8,8,12,.97) 0%, rgba(8,8,12,.93) 34%, rgba(8,8,12,.66) 54%,
+      rgba(8,8,12,.22) 72%, rgba(8,8,12,0) 88%),
+    /* только нижняя кромка, чтобы шапка не обрывалась линией */
     linear-gradient(180deg,
-      rgba(8,8,12,.30) 0%, rgba(8,8,12,0) 26%,
-      rgba(8,8,12,0) 68%, rgba(8,8,12,.55) 90%, #08080C 100%);
-}
+      rgba(8,8,12,0) 62%, rgba(8,8,12,.55) 88%, #08080C 100%);
 .hd-hero > *{position:relative; z-index:1}
 .hd-hero h1{text-shadow:0 2px 20px rgba(0,0,0,.7)}
 .hd-hero .sub{color:#C4C4D2; text-shadow:0 1px 14px rgba(0,0,0,.75)}
