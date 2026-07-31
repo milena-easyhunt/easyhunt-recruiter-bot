@@ -104,6 +104,31 @@ h1{
   font-size:13px;cursor:pointer;padding:6px 0;font-weight:600
 }
 
+/* ─── выбор карточками вместо системного списка ─── */
+.pick{display:flex;flex-direction:column;gap:8px}
+.pick button{
+  position:relative;display:block;width:100%;text-align:left;overflow:hidden;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  padding:14px 40px 14px 16px;cursor:pointer;
+  font-family:inherit;font-size:15.5px;font-weight:600;color:var(--ink);
+  transition:border-color .14s,background .14s
+}
+.pick button span{
+  display:block;font-size:12.5px;color:var(--muted);font-weight:400;margin-top:2px
+}
+.pick button::after{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--line)
+}
+.pick button[aria-pressed=true]{
+  border-color:#3A2154;
+  background:linear-gradient(180deg,rgba(110,42,232,.16),rgba(238,28,139,.06))
+}
+.pick button[aria-pressed=true]::after{background:var(--grad)}
+.pick button[aria-pressed=true]::before{
+  content:'';position:absolute;right:16px;top:50%;margin-top:-4px;
+  width:8px;height:8px;transform:rotate(45deg);background:var(--magenta)
+}
+
 /* ─── поля ─── */
 label.lbl{display:block;font-size:12.5px;color:var(--muted);margin:0 0 6px}
 select,input,textarea{
@@ -209,8 +234,9 @@ select:focus,input:focus,textarea:focus{
       <p class="sub" id="bind-sub"></p>
     </div>
     <div class="note">Выбери себя один раз. Дальше форма будет узнавать тебя по аккаунту Telegram.</div>
-    <div class="field"><label class="lbl" for="bind-who">Кто ты</label>
-      <select id="bind-who"></select></div>
+    <div class="field"><span class="lbl">Кто ты</span>
+      <div class="pick" id="bind-list"></div>
+      <input type="hidden" id="bind-who"></div>
     <div class="field"><label class="lbl" for="bind-nick">Как к тебе обращаться</label>
       <input type="text" id="bind-nick" maxlength="30" placeholder="Имя"></div>
     <button class="btn wide" id="bind-go">Это я</button>
@@ -247,10 +273,9 @@ select:focus,input:focus,textarea:focus{
       <h1>Отпуск, day off, больничный</h1>
       <p class="sub">Заявку увидит Алина. В табель попадёт после её решения.</p>
     </div>
-    <div class="field"><label class="lbl" for="ab-type">Тип</label>
-      <select id="ab-type">
-        <option>Отпуск</option><option>Больничный</option><option>Day off</option>
-      </select></div>
+    <div class="field"><span class="lbl">Что оформляем</span>
+      <div class="pick" id="ab-list"></div>
+      <input type="hidden" id="ab-type" value="Отпуск"></div>
     <div class="row2">
       <div class="field"><label class="lbl" for="ab-from">С</label><input type="date" id="ab-from"></div>
       <div class="field"><label class="lbl" for="ab-to">По</label><input type="date" id="ab-to"></div>
@@ -403,14 +428,12 @@ function boot() {
     if (!j.bound) {
       S.people = j.people;
       $('bind-sub').textContent = j.tgName ? ('Telegram: ' + j.tgName) : '';
-      var sel = $('bind-who'); sel.innerHTML = '';
-      j.people.forEach(function (p) {
-        var o = document.createElement('option');
-        o.value = p.name; o.textContent = p.name + ' · ' + p.role; sel.appendChild(o);
-      });
-      var nick = $('bind-nick');
-      var fill = function () { nick.value = shortName(sel.value); };
-      sel.onchange = fill; fill();
+      buildPicker('bind-list', 'bind-who',
+        j.people.map(function (p) {
+          return { value: p.name, label: p.name, sub: p.role };
+        }),
+        function (v) { $('bind-nick').value = shortName(v); });
+      $('bind-nick').value = shortName($('bind-who').value);
       show('bind');
       return;
     }
@@ -433,7 +456,13 @@ function boot() {
       '<button class="btn wide" id="retry">Повторить</button>';
     $('retry').onclick = function () {
       $('s-load').innerHTML = '<div class="spin">Загружаю…</div>';
-      boot();
+      buildPicker('ab-list', 'ab-type', [
+  { value: 'Отпуск',      label: 'Отпуск' },
+  { value: 'Больничный',  label: 'Больничный' },
+  { value: 'Day off',     label: 'Day off', sub: 'один или несколько дней' }
+]);
+
+boot();
     };
   });
 }
@@ -468,6 +497,33 @@ function plural(n, a, b, c) {
   m = n % 10; return m === 1 ? a : (m > 1 && m < 5 ? b : c);
 }
 function vkey(v) { return v.project + '§' + v.title + '§' + v.level; }
+
+/**
+ * Список карточек вместо <select>: системный выпадающий список
+ * рисует операционная система, и оформить его нельзя.
+ */
+function buildPicker(boxId, inputId, items, onPick) {
+  var box = $(boxId), inp = $(inputId);
+  box.innerHTML = '';
+  items.forEach(function (it, i) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.innerHTML = it.sub
+      ? (it.label + '<span>' + it.sub + '</span>')
+      : it.label;
+    b.onclick = function () {
+      inp.value = it.value;
+      box.querySelectorAll('button').forEach(function (x) {
+        x.setAttribute('aria-pressed', String(x === b));
+      });
+      if (onPick) onPick(it.value);
+    };
+    box.appendChild(b);
+    var pre = inp.value ? (inp.value === it.value) : (i === 0);
+    b.setAttribute('aria-pressed', String(pre));
+    if (pre) inp.value = it.value;
+  });
+}
 
 /* ---------- экран отчёта ---------- */
 function renderReport() {
@@ -623,6 +679,12 @@ $('ab-go').onclick = function () {
     $('ab-go').disabled = false; $('ab-go').textContent = 'Отправить';
   });
 };
+
+buildPicker('ab-list', 'ab-type', [
+  { value: 'Отпуск',      label: 'Отпуск' },
+  { value: 'Больничный',  label: 'Больничный' },
+  { value: 'Day off',     label: 'Day off', sub: 'один или несколько дней' }
+]);
 
 boot();
 </script>
