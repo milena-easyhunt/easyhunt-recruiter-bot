@@ -370,7 +370,8 @@ var FIELDS = {
   ]
 };
 
-var S = { me: null, debug: false, asName: null, vacs: [], data: {}, date: null };
+var S = { me: null, debug: false, asName: null, vacs: [], data: {}, date: null,
+          isApprover: false, busy: false };
 
 // Как обращаться в приветствии. Кого нет в списке — по первому слову имени.
 var SHORT = {
@@ -435,14 +436,27 @@ function loadRequests() {
         var no = document.createElement('button');
         no.className = 'btn ghost';
         no.textContent = 'Отклонить';
+        var yesText = yes.textContent, noText = no.textContent;
         var decide = function (ok) {
-          yes.disabled = no.disabled = true;
-          yes.textContent = ok ? 'Сохраняю…' : yes.textContent;
+          if (S.busy) return;                       // одно решение за раз
+          S.busy = true;
+          box.querySelectorAll('.acts .btn').forEach(function (b) { b.disabled = true; });
+          (ok ? yes : no).textContent = 'Сохраняю…';
+          var old = el.querySelector('.req-err');
+          if (old) old.remove();
+
           api('decide', { row: r.row, approve: ok }).then(function () {
+            S.busy = false;
             loadRequests();
           }).catch(function (e) {
-            $('req-err').textContent = e.message; $('req-err').hidden = false;
-            yes.disabled = no.disabled = false;
+            S.busy = false;
+            box.querySelectorAll('.acts .btn').forEach(function (b) { b.disabled = false; });
+            yes.textContent = yesText; no.textContent = noText;
+            var p = document.createElement('p');
+            p.className = 'err req-err';
+            p.style.margin = '10px 0 0';
+            p.textContent = e.message;
+            el.appendChild(p);
           });
         };
         yes.onclick = function () { decide(true); };
@@ -463,6 +477,7 @@ function loadRequests() {
 function paintReqBadge(isApprover, pending, total) {
   var btn = $('btn-req');
   if (!isApprover && !total) { btn.hidden = true; return; }
+  if (isApprover) S.isApprover = true;
   btn.hidden = false;
   btn.childNodes[0].nodeValue = isApprover ? 'Заявки' : 'Мои заявки';
   $('req-cnt').textContent = isApprover
@@ -597,11 +612,22 @@ function boot() {
       : 'активных вакансий не найдено';
     $('ab-from').value = j.today; $('ab-to').value = j.today;
     if (tg) { $('quit').hidden = false; $('quit').onclick = function () { tg.close(); }; }
+
+    // Кнопка заявок опирается на роль из init. Раньше её показывал фоновый запрос —
+    // тот падал, и раздел пропадал у согласующего совсем.
+    S.isApprover = !!j.isApprover;
+    if (S.isApprover) {
+      $('btn-req').hidden = false;
+      $('btn-req').childNodes[0].nodeValue = 'Заявки';
+      $('req-cnt').textContent = 'загружаю…';
+    }
     show('home');
-    // счётчик заявок подтягиваем фоном, чтобы не тормозить вход
+
     api('requests').then(function (q) {
       paintReqBadge(q.isApprover, q.count, q.pending.length + q.decided.length);
-    }).catch(function () {});
+    }).catch(function () {
+      if (S.isApprover) $('req-cnt').textContent = 'открой, чтобы посмотреть';
+    });
   }).catch(function (e) {
     stop();
     var raw = (tg && tg.initData) ? tg.initData : '';
