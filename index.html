@@ -60,12 +60,14 @@ body{
 .hd-hero::after{
   content:''; position:absolute; inset:0;
   background:
+    /* плотная чернота под текстом, дальше резко сходит на нет */
     linear-gradient(90deg,
-      #08080C 0%, rgba(8,8,12,.95) 24%, rgba(8,8,12,.72) 46%,
-      rgba(8,8,12,.34) 72%, rgba(8,8,12,.08) 100%),
+      #08080C 0%, #08080C 38%, rgba(8,8,12,.88) 52%,
+      rgba(8,8,12,.30) 68%, rgba(8,8,12,0) 80%),
+    /* только чтобы шапка не обрывалась линией */
     linear-gradient(180deg,
-      rgba(8,8,12,.55) 0%, rgba(8,8,12,.10) 34%,
-      rgba(8,8,12,.72) 86%, #08080C 100%);
+      rgba(8,8,12,.30) 0%, rgba(8,8,12,0) 26%,
+      rgba(8,8,12,0) 68%, rgba(8,8,12,.55) 90%, #08080C 100%);
 }
 .hd-hero > *{position:relative; z-index:1}
 .hd-hero h1{text-shadow:0 2px 20px rgba(0,0,0,.7)}
